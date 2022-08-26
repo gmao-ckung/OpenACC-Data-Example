@@ -2,7 +2,6 @@ module oACC_module
     implicit none
 
     real, dimension(:,:), allocatable, target :: A1
-    real, dimension(:,:), pointer             :: A1_ptr
 
      type :: oACC_module_type
           real, dimension(:,:), allocatable :: A1
@@ -54,7 +53,7 @@ program oacc_data_example
     implicit none
 
     integer :: I, J
-
+    real, dimension(:,:), pointer :: A1_ptr
     type(oACC_module_type), target :: typeExample
 
     !********************************************************************************
