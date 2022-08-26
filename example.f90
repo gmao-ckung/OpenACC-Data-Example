@@ -36,12 +36,19 @@ program oacc_data_example
 #ifdef GNU_OACC
     print*,'*** Gfortran adjustment : Copying A1 to GPU ***'
     call acc_copyin(A1)
-    !********************************************************************************
-    !*** For some reason, "!$acc enter data" does not work in this situation with ***
-    !*** gfortran, though I think it should work.                                  ***
-    !********************************************************************************
+    !***********************************************************************
+    !*** Using "!$acc enter data" creates a crash during execution with  ***
+    !*** gfortran, though I think it should work.                        ***
+    !***********************************************************************
     !!$acc enter data copyin(A1)
 #endif
+
+    ! ***********************************************************************************************
+    ! *** Note on !$acc kernels : When using "!$acc kernels" with gfortran, the code needs to be  ***
+    ! ***        compileed with either -O0 or -O1 to generate valid results.  Using -O2 or -O3    ***
+    ! ***        seems to create a race condition.                                                ***
+    ! ***********************************************************************************************
+
 
     !***************************************************************************
     !*** Initializing A1 on CPU memory with zeros                            ***
@@ -54,9 +61,17 @@ program oacc_data_example
     !*************************************************
 
     print*,'*** Computing on GPU ***'
-!$acc kernels present(A1)
-    A1 = 7.0
-!$acc end kernels
+! !$acc kernels present(A1)
+!     A1 = 7.0
+! !$acc end kernels
+
+!$acc parallel loop collapse(2) present(A1)
+    do J = 1,3
+        do I = 1,3
+            A1(I,J) = 7.0
+        enddo
+    enddo
+!$acc end parallel loop
 
     print*, '*** Done computing on GPU ***'
     print*, '*** Printing Values of A1 in CPU memory ***'
@@ -66,17 +81,19 @@ program oacc_data_example
 !$acc update host(A1)
 
     print*, '*** Printing Values of A1 in CPU memory based on copy from GPU memory ***'
+
     print*, 'sum(A1) = ', sum(A1)
+    
+    if(sum(A1).eq.63.0) then
+        print*,'*** Test passed! ***'
+    else
+        print*,'*** Test failed! ***'
+    endif
+
     print*, '*************************************************************************'
     print*, '*** Calling sub1 subroutine ***'
 
     call sub1
-
-    ! ******************************************************************************************************
-    ! *** Note : For sub1 to compute or pass to the host (I'm not sure which one) the correction answer  ***
-    ! ***        for A1 when building with gfortran, the code needs to compile with either -O0 or -O1.   ***
-    ! ***        Using -O2 or -O3 seems to create a race condition.                                      ***
-    ! ******************************************************************************************************
 
     print*, '*** Printing Values of A1 in CPU memory ***'
     print*, 'sum(A1) = ', sum(A1)
@@ -86,51 +103,75 @@ program oacc_data_example
 
     print*, '*** Printing Values of A1 in CPU memory based on copy from GPU memory ***'
     print*, 'sum(A1) = ', sum(A1)
+    if(sum(A1).eq.72.0) then
+        print*,'*** Test passed! ***'
+    else
+        print*,'*** Test failed! ***'
+    endif
     print*,'**************************************************************************'
 
-!     print*,'*** Going into OpenACC Data region ***'
+    print*,'*** Going into OpenACC Data region ***'
 
-! !$acc data present(A1)
-!     print*, '*** Computing/Setting values of A1 on GPU and storing on GPU memory ***'
+!$acc data present(A1)
+    print*, '*** Computing/Setting values of A1 on GPU ***'
 
 ! !$acc kernels
-!     A1 = A1+1
+!     A1 = A1+2
 ! !$acc end kernels
 
-! !$acc parallel loop collapse(2)
-!     do J = 1,3
-!         do I = 1,3
-!             A1(I,J) = A1(I,J) + 2
-!         enddo
-!     enddo
-! !$acc end parallel loop
-! !$acc end data
+!$acc parallel loop collapse(2)
+    do J = 1,3
+        do I = 1,3
+            A1(I,J) = A1(I,J) + 2
+        enddo
+    enddo
+!$acc end parallel loop
+!$acc end data
 
-!     print*,'*** Exiting OpenACC Data region ***'
-!     print*,'*** Printing Values of A1 in CPU memory ***'
-!     print*, 'sum(A1) = ', sum(A1)
-!     print*, '*** Copying values of of A1 in GPU memory to CPU memory ***'
+    print*,'*** Exiting OpenACC Data region ***'
+    print*,'*** Printing Values of A1 in CPU memory ***'
+    print*, 'sum(A1) = ', sum(A1)
+    print*, '*** Copying values of of A1 in GPU memory to CPU memory ***'
 
-! !$acc update host(A1)
+!$acc update host(A1)
 
-!     print*, '*** Printing Values of A1 in CPU memory based on copy from GPU memory ***'
-!     print*, 'sum(A1) = ', sum(A1)
-!     print*,'**************************************************************************'
+    print*, '*** Printing Values of A1 in CPU memory based on copy from GPU memory ***'
+    print*, 'sum(A1) = ', sum(A1)
+    if(sum(A1).eq.90.0) then
+        print*,'*** Test passed! ***'
+    else
+        print*,'*** Test failed! ***'
+    endif
+    print*,'**************************************************************************'
 
-!     A1_ptr => A1
-!     print*, '***Computing/Setting values of A1 on GPU via pointer and storing on GPU memory***'
+    A1_ptr => A1
+    print*, '*** Computing/Setting values of A1 on GPU via pointer ***'
 
 ! !$acc kernels present(A1_ptr)
 !     A1_ptr = A1_ptr-1   
 ! !$acc end kernels
 
-!     print*, '***Printing Values of A1 in CPU memory***'
-!     print*, 'sum(A1) = ', sum(A1)
+!$acc parallel loop collapse(2) present(A1_ptr)
+    do J = 1,3
+        do I = 1,3
+            A1_ptr(I,J) = A1_ptr(I,J) - 1
+        enddo
+    enddo
+!$acc end parallel loop
 
-! !$acc update host(A1)
+    print*, '***Printing Values of A1 in CPU memory***'
+    print*, 'sum(A1) = ', sum(A1)
 
-!     print*, '***Printing Values of A1 and A2 in CPU memory based on copy from GPU memory***'
-!     print*, 'sum(A1) = ', sum(A1)
+!$acc update host(A1)
+
+    print*, '***Printing Values of A1 and A2 in CPU memory based on copy from GPU memory***'
+    print*, 'sum(A1) = ', sum(A1)
+    if(sum(A1).eq.81.0) then
+        print*,'*** Test passed! ***'
+    else
+        print*,'*** Test failed! ***'
+    endif
+    print*,'**************************************************************************'
 
 end program
 
@@ -139,8 +180,18 @@ subroutine sub1
 
     implicit none
 
-!$acc kernels present(A1)
-    A1 = A1+1
-!$acc end kernels
+    integer :: I, J
+
+! !$acc kernels present(A1)
+!     A1 = A1+1
+! !$acc end kernels
+
+!$acc parallel loop collapse(2) present(A1)
+    do J = 1,3
+        do I = 1,3
+            A1(I,J) = A1(I,J) + 1
+        enddo
+    enddo
+!$acc end parallel loop
 
 end subroutine

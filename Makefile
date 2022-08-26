@@ -1,9 +1,9 @@
 programName = OACC_DATA_TEST
 
-FC = nvfortran
+FC = gfortran
 #OPT = -O3 -cpp -Mflushz -Mfunc32 -Kieee #NVIDIA compiler options
-OPT = -O3 -cpp -Mfunc32 -Kieee -acc=gpu -gpu=flushz -Minfo=acc #NVIDIA compiler options
-#OPT = -cpp -O1 -ffree-line-length-none -fopenacc -foffload=nvptx-none -DGNU_OACC# Gfortran compiler options
+#OPT = -O3 -cpp -Mfunc32 -Kieee -acc=gpu -gpu=flushz -Minfo=acc #NVIDIA compiler options
+OPT = -cpp -O3 -ffree-line-length-none -fopenacc -foffload=nvptx-none -DGNU_OACC# Gfortran compiler options
 OBJ = example.o
 
 %.o : %.f90
