@@ -50,8 +50,6 @@ program oacc_data_example
     use openacc
     use oACC_module
 
-    implicit none
-
     integer :: I, J
     real, dimension(:,:), pointer :: A1_ptr
     type(oACC_module_type), target :: typeExample
@@ -75,14 +73,14 @@ program oacc_data_example
     !***********************************************************************
     !!$acc enter data copyin(A1)
 
-    call acc_copyin(typeExample)
-    call acc_copyin(typeExample%A1)
+    !call acc_copyin(typeExample)
+    !call acc_copyin(typeExample%A1)
     !*******************************************************************************
     !*** I think that "!$acc enter data" should work with derived data types in  ***
     !*** gfortran, but values written to typeExample%A1 are not valid            ***
     !*******************************************************************************
-    !!$acc enter data create(typeExample)
-    !!$acc enter data create(typeExample%A1)
+    !$acc enter data copyin(typeExample)
+    !$acc enter data create(typeExample%A1)
 #else
     !$acc enter data create(typeExample)
     !$acc enter data create(typeExample%A1)
